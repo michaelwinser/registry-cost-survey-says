@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Survey Board</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Arial Black', 'Arial Bold', sans-serif;
+      background: #1e293b;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    
+    /* Setup Mode Styles */
+    .setup-panel {
+      background: #334155;
+      border-radius: 12px;
+      padding: 24px;
+      border: 4px solid #22d3ee;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    }
+
+    .setup-panel label {
+      display: block;
+      color: #22d3ee;
+      font-weight: bold;
+      margin-bottom: 8px;
+      font-size: 18px;
+    }
+
+    .setup-panel input[type="text"],
+    .setup-panel input[type="number"] {
+      background: #0f172a;
+      border: 2px solid #475569;
+      color: white;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 16px;
+      outline: none;
+    }
+
+    .setup-panel input:focus {
+      border-color: #22d3ee;
+    }
+    
+    .question-input {
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    
+    .answers-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: repeat(5, auto);
+      grid-auto-flow: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    
+    .answer-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    
+    .answer-num {
+      color: #22d3ee;
+      font-weight: bold;
+      width: 24px;
+      text-align: right;
+    }
+    
+    .answer-text-input {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .answer-points-input {
+      width: 60px;
+      text-align: center;
+    }
+    
+    .start-btn {
+      width: 100%;
+      padding: 16px;
+      background: #22d3ee;
+      color: #0f172a;
+      font-size: 24px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .start-btn:hover {
+      background: #67e8f9;
+    }
+
+    .start-btn:disabled {
+      background: #475569;
+      cursor: not-allowed;
+    }
+    
+    /* Play Mode Styles */
+    .question-display {
+      background: #334155;
+      border-radius: 12px;
+      padding: 16px 24px;
+      border: 4px solid #22d3ee;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .question-display h2 {
+      color: white;
+      font-size: 24px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .board {
+      background: #334155;
+      border-radius: 12px;
+      padding: 20px;
+      border: 4px solid #22d3ee;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    }
+    
+    .board-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    
+    .answer-slot {
+      position: relative;
+      height: 64px;
+      border-radius: 8px;
+      border: 4px solid #475569;
+      background: #0f172a;
+      cursor: pointer;
+      transition: all 0.3s;
+      overflow: hidden;
+    }
+
+    .answer-slot:hover:not(.revealed) {
+      border-color: #22d3ee;
+    }
+
+    .answer-slot.revealed {
+      background: #164e63;
+      border-color: #06b6d4;
+      cursor: default;
+    }
+
+    .slot-number {
+      position: absolute;
+      left: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 40px;
+      height: 40px;
+      background: #22d3ee;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: bold;
+      color: #0f172a;
+    }
+    
+    .slot-hidden {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      padding-left: 56px;
+    }
+    
+    .slot-hidden-bar {
+      width: 70%;
+      height: 8px;
+      background: #334155;
+      border-radius: 4px;
+    }
+    
+    .slot-content {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+      padding: 0 16px 0 56px;
+    }
+    
+    .revealed .slot-hidden {
+      display: none;
+    }
+    
+    .revealed .slot-content {
+      display: flex;
+    }
+    
+    .answer-text {
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      text-transform: uppercase;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+    
+    .answer-points {
+      color: #22d3ee;
+      font-size: 28px;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .total-display {
+      margin-top: 16px;
+      background: #22d3ee;
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .total-display span {
+      color: #0f172a;
+      font-size: 28px;
+      font-weight: bold;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 16px;
+      margin-top: 16px;
+    }
+    
+    .control-btn {
+      flex: 1;
+      padding: 12px;
+      font-size: 18px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .edit-btn {
+      background: #ef4444;
+      color: white;
+    }
+
+    .edit-btn:hover {
+      background: #f87171;
+    }
+
+    .reset-btn {
+      background: #10b981;
+      color: white;
+    }
+
+    .reset-btn:hover {
+      background: #34d399;
+    }
+
+    .guess-container {
+      margin-top: 16px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .guess-input {
+      flex: 1;
+      padding: 16px 20px;
+      font-size: 20px;
+      font-weight: bold;
+      border: 4px solid #475569;
+      border-radius: 8px;
+      background: #0f172a;
+      color: white;
+      outline: none;
+      text-transform: uppercase;
+    }
+
+    .guess-input:focus {
+      border-color: #22d3ee;
+    }
+
+    .guess-input::placeholder {
+      color: #64748b;
+      text-transform: none;
+    }
+
+    .guess-btn {
+      padding: 16px 32px;
+      font-size: 20px;
+      font-weight: bold;
+      background: #22d3ee;
+      color: #0f172a;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .guess-btn:hover {
+      background: #67e8f9;
+    }
+
+    .guess-feedback {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .guess-feedback.show {
+      opacity: 1;
+    }
+
+    .guess-feedback.correct {
+      background: #10b981;
+      color: white;
+    }
+
+    .guess-feedback.wrong {
+      background: #ef4444;
+      color: white;
+    }
+
+    .controls {
+      margin-top: 200vh;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+    
+    @media (max-width: 600px) {
+      .board-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .answers-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .answer-text {
+        font-size: 14px;
+      }
+      
+      .answer-points {
+        font-size: 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Setup Mode -->
+    <div id="setup-mode" class="setup-panel hidden">
+      <label for="question">Survey Question:</label>
+      <input type="text" id="question" class="question-input" placeholder="Enter your survey question...">
+
+      <label>Answers:</label>
+      <div class="answers-grid" id="answers-setup"></div>
+
+      <button class="start-btn" id="start-btn">START GAME</button>
+    </div>
+
+    <!-- Play Mode -->
+    <div id="play-mode">
+      <div class="question-display">
+        <h2 id="question-display-text"></h2>
+      </div>
+      
+      <div class="board">
+        <div class="board-grid" id="board-grid"></div>
+        
+        <div class="total-display">
+          <span>TOTAL: <span id="total-points">0</span></span>
+        </div>
+
+        <div class="guess-container">
+          <input type="text" id="guess-input" class="guess-input" placeholder="Type your answer..." autocomplete="off">
+          <button class="guess-btn" id="guess-btn">GUESS</button>
+        </div>
+        <div class="guess-feedback" id="guess-feedback"></div>
+      </div>
+
+      <div class="controls">
+        <button class="control-btn edit-btn" id="edit-btn">EDIT ANSWERS</button>
+        <button class="control-btn reset-btn" id="reset-btn">RESET BOARD</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Default answers
+    const defaultAnswers = [
+      { text: 'Network bandwidth', points: 25 },
+      { text: 'Storage costs', points: 18 },
+      { text: 'Compute', points: 15 },
+      { text: 'Malware', points: 12 },
+      { text: 'Abuse', points: 10 },
+      { text: 'Site Reliability Eng', points: 8 },
+      { text: 'Publisher support', points: 6 },
+      { text: 'Bug fixes', points:4 },
+      { text: 'Feature development', points: 2 },
+      { text: 'Security development', points: 1 },
+    ];
+
+    let answers = JSON.parse(JSON.stringify(defaultAnswers));
+    let revealed = [];
+    let totalPoints = 0;
+    let validAnswersForGame = [];
+    const dingSound = new Audio('ding.mp3');
+
+    // Levenshtein distance for fuzzy matching
+    function levenshteinDistance(str1, str2) {
+      const m = str1.length;
+      const n = str2.length;
+      const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+
+      for (let i = 0; i <= m; i++) dp[i][0] = i;
+      for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+      for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+          if (str1[i - 1] === str2[j - 1]) {
+            dp[i][j] = dp[i - 1][j - 1];
+          } else {
+            dp[i][j] = 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+          }
+        }
+      }
+      return dp[m][n];
+    }
+
+    // Normalize string for comparison
+    function normalize(str) {
+      return str.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+    }
+
+    // Find best match using fuzzy matching
+    function findBestMatch(guess) {
+      const normalizedGuess = normalize(guess);
+      if (!normalizedGuess) return null;
+
+      let bestMatch = null;
+      let bestScore = Infinity;
+
+      validAnswersForGame.forEach((answer, index) => {
+        if (revealed[index]) return; // Skip already revealed
+
+        const normalizedAnswer = normalize(answer.text);
+
+        // Check for substring match first (very lenient)
+        if (normalizedAnswer.includes(normalizedGuess) || normalizedGuess.includes(normalizedAnswer)) {
+          if (bestMatch === null || answer.points > validAnswersForGame[bestMatch].points) {
+            bestMatch = index;
+            bestScore = 0;
+          }
+          return;
+        }
+
+        // Calculate Levenshtein distance
+        const distance = levenshteinDistance(normalizedGuess, normalizedAnswer);
+
+        // Calculate similarity threshold based on answer length
+        // Allow more errors for longer words
+        const maxLength = Math.max(normalizedGuess.length, normalizedAnswer.length);
+        const threshold = Math.max(2, Math.floor(maxLength * 0.4)); // 40% error tolerance, minimum 2
+
+        if (distance <= threshold && distance < bestScore) {
+          bestScore = distance;
+          bestMatch = index;
+        }
+      });
+
+      return bestMatch;
+    }
+
+    function showFeedback(message, isCorrect) {
+      const feedback = document.getElementById('guess-feedback');
+      feedback.textContent = message;
+      feedback.className = 'guess-feedback show ' + (isCorrect ? 'correct' : 'wrong');
+
+      setTimeout(() => {
+        feedback.classList.remove('show');
+      }, 2000);
+    }
+
+    function submitGuess() {
+      const input = document.getElementById('guess-input');
+      const guess = input.value.trim();
+
+      if (!guess) return;
+
+      const matchIndex = findBestMatch(guess);
+
+      if (matchIndex !== null) {
+        // Found a match - reveal it
+        const slot = document.querySelector(`.answer-slot[data-index="${matchIndex}"]`);
+        if (slot && !revealed[matchIndex]) {
+          revealAnswer(matchIndex, parseInt(validAnswersForGame[matchIndex].points) || 0, slot);
+          showFeedback(`✓ "${validAnswersForGame[matchIndex].text}" - ${validAnswersForGame[matchIndex].points} points!`, true);
+        }
+      } else {
+        showFeedback('✗ Not on the board!', false);
+      }
+
+      input.value = '';
+      input.focus();
+    }
+
+    function playBellSound() {
+      dingSound.currentTime = 0;
+      dingSound.play();
+    }
+
+    // Setup mode initialization
+    function initSetup() {
+      const container = document.getElementById('answers-setup');
+      container.innerHTML = '';
+      
+      for (let i = 0; i < 10; i++) {
+        const row = document.createElement('div');
+        row.className = 'answer-row';
+        row.innerHTML = `
+          <span class="answer-num">${i + 1}.</span>
+          <input type="text" class="answer-text-input" data-index="${i}" placeholder="Answer ${i + 1}" value="${answers[i].text}">
+          <input type="number" class="answer-points-input" data-index="${i}" placeholder="Pts" value="${answers[i].points}">
+        `;
+        container.appendChild(row);
+      }
+
+      // Add event listeners
+      container.querySelectorAll('.answer-text-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          answers[parseInt(e.target.dataset.index)].text = e.target.value;
+        });
+      });
+
+      container.querySelectorAll('.answer-points-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          answers[parseInt(e.target.dataset.index)].points = parseInt(e.target.value) || '';
+        });
+      });
+    }
+
+    // Build the game board with two columns (column-first order)
+    function buildBoard() {
+      const grid = document.getElementById('board-grid');
+      grid.innerHTML = '';
+
+      const half = Math.ceil(validAnswersForGame.length / 2);
+
+      // Set grid rows based on the larger column
+      grid.style.gridTemplateRows = `repeat(${half}, 1fr)`;
+
+      // Add answers in column-first order (fill first column, then second)
+      for (let pos = 0; pos < validAnswersForGame.length; pos++) {
+        const row = Math.floor(pos / 2);
+        const col = pos % 2;
+        const i = col * half + row;
+        if (i < validAnswersForGame.length) {
+          createSlot(grid, i, validAnswersForGame[i], i + 1);
+        }
+      }
+    }
+
+    function createSlot(container, index, answer, displayNum) {
+      const slot = document.createElement('div');
+      slot.className = 'answer-slot';
+      slot.dataset.index = index;
+      slot.innerHTML = `
+        <div class="slot-number">${displayNum}</div>
+        <div class="slot-hidden">
+          <div class="slot-hidden-bar"></div>
+        </div>
+        <div class="slot-content">
+          <span class="answer-text">${answer.text}</span>
+          <span class="answer-points">${answer.points}</span>
+        </div>
+      `;
+      
+      slot.addEventListener('click', () => revealAnswer(index, parseInt(answer.points) || 0, slot));
+      container.appendChild(slot);
+    }
+
+    function revealAnswer(index, points, element) {
+      if (revealed[index]) return;
+      
+      revealed[index] = true;
+      element.classList.add('revealed');
+      totalPoints += points;
+      document.getElementById('total-points').textContent = totalPoints;
+      
+      playBellSound();
+    }
+
+    function startGame() {
+      validAnswersForGame = answers.filter(a => a.text.trim() !== '');
+      if (validAnswersForGame.length === 0) return;
+
+      revealed = validAnswersForGame.map(() => false);
+      totalPoints = 0;
+
+      document.getElementById('question-display-text').textContent =
+        document.getElementById('question').value || 'Survey Says...';
+
+      buildBoard();
+
+      document.getElementById('setup-mode').classList.add('hidden');
+      document.getElementById('play-mode').classList.remove('hidden');
+      document.getElementById('guess-input').value = '';
+      document.getElementById('guess-input').focus();
+    }
+
+    function resetBoard() {
+      revealed = validAnswersForGame.map(() => false);
+      totalPoints = 0;
+      document.getElementById('total-points').textContent = '0';
+      document.getElementById('guess-input').value = '';
+      document.getElementById('guess-feedback').className = 'guess-feedback';
+
+      document.querySelectorAll('.answer-slot').forEach(slot => {
+        slot.classList.remove('revealed');
+      });
+
+      document.getElementById('guess-input').focus();
+    }
+
+    function editAnswers() {
+      document.getElementById('play-mode').classList.add('hidden');
+      document.getElementById('setup-mode').classList.remove('hidden');
+    }
+
+    // Event listeners
+    document.getElementById('start-btn').addEventListener('click', startGame);
+    document.getElementById('reset-btn').addEventListener('click', resetBoard);
+    document.getElementById('edit-btn').addEventListener('click', editAnswers);
+    document.getElementById('guess-btn').addEventListener('click', submitGuess);
+    document.getElementById('guess-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') submitGuess();
+    });
+
+    // Initialize
+    initSetup();
+    startGame();
+  </script>
+</body>
+</html>
